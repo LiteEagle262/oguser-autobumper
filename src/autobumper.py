@@ -1,5 +1,6 @@
 import requests
 import datetime
+import os
 import time
 import re
 
@@ -19,9 +20,12 @@ from config import username, password, secret
 class Autobumper(ABC):
 
     def __init__(self, headless) -> None:
+        if not username or not password:
+            raise SystemExit('Missing credentials. Set OGU_USERNAME and OGU_PASSWORD env vars.')
         self.main_url = "https://oguser.com/"
         self.username = username
         self.headless = headless
+        self.bump_interval = float(os.getenv("BUMP_INTERVAL_HOURS", "2")) * 3600
         self.driver = Driver(uc=True, headless=headless)
         self.wait = WebDriverWait(self.driver, 25)
 

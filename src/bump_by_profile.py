@@ -35,7 +35,7 @@ class ProfileBumper(Autobumper):
                     print(f"ERROR: {e}")
                     time.sleep(0.5)
             print('Finished bumping all threads!')
-            time.sleep(4*1800 - len(self.tids)*5)
+            time.sleep(max(self.bump_interval - len(self.tids)*5, 0))
 
     def get_links(self):
         self.driver.get(self.main_url + self.username)

@@ -1,3 +1,5 @@
-username = "enter your username here"
-password = "enter your password here"
-secret = "enter your 2FA secret here"
+import os
+
+username = os.getenv("OGU_USERNAME", "")
+password = os.getenv("OGU_PASSWORD", "")
+secret = os.getenv("OGU_2FA_SECRET", "")

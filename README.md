@@ -7,10 +7,30 @@ A lightweight Autobumper and Awardfarmer (Events) for [oguser.com](https://oguse
 
 ## Modes:
 [1] Bumps all threads from 'Market' section on user profile with 2 hour interval.  
-[2] Bumps all threads by links in [threads.txt](threads.txt) file every 2 hours.  
+[2] Bumps all threads by links (env `THREAD_URLS` or [threads.txt](threads.txt)) every 2 hours.  
 [3] Spams random messages in thread by input link. Useful for farming awards during events.  
 
-## Requirements
+## Docker (recommended)
+
+Everything is configured through environment variables — no files to edit:
+
+```bash
+cp .env.example .env   # fill in your credentials + threads
+docker compose up -d --build
+```
+
+| Env var | Description |
+|---|---|
+| `OGU_USERNAME` | Account username |
+| `OGU_PASSWORD` | Account password |
+| `OGU_2FA_SECRET` | Base32 TOTP secret, only if 2FA is enabled |
+| `MODE` | `1` = profile threads, `2` = `THREAD_URLS` list, `3` = award farmer |
+| `THREAD_URLS` | Comma-separated thread links for mode 2 |
+| `THREAD` | Single thread link for mode 3 |
+| `BUMP_INTERVAL_HOURS` | Hours between bump cycles (default `2`) |
+| `HEADLESS` | `true`/`false` (default `true`) |
+
+## Requirements (manual run)
 To install and run the Autobumper you will need [Git](https://git-scm.com/downloads), [Python](https://www.python.org/downloads/) and [Google Chrome](https://www.google.com/chrome/).
 
 ## Setup:
@@ -39,10 +59,10 @@ pip install -r requirements.txt
 
 ## Usage
 
-Enter your `username` and `password` in [config.py](config.py).  
-If you have 2FA enabled also enter the `secret`, which was shown when initialising the 2FA.  
+Set `OGU_USERNAME` and `OGU_PASSWORD` in your environment (or a `.env` file).  
+If you have 2FA enabled also set `OGU_2FA_SECRET`, which was shown when initialising the 2FA.  
 To see the 2FA secret you might have to reset your 2FA and it will show below the QR code.  
-In case you want to use the Autobumper by links, put the urls in [threads.txt](threads.txt).
+In case you want to use the Autobumper by links, set `MODE=2` and put the urls in `THREAD_URLS` (comma-separated) or [threads.txt](threads.txt).
 
 Run the following command inside the `oguser-autobumper` directory:
 

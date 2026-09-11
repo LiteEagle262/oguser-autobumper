@@ -1,4 +1,6 @@
 import argparse
+import os
+import sys
 
 from src import Awardfarmer, LinkBumper, ProfileBumper
 
@@ -13,12 +15,12 @@ def str2bool(value):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="OGU Bumper - A lightweight Autobumper and Awardfarmer (Events) for https://oguser.com written in Python.")
-    parser.add_argument('--headless', type=str2bool, default=True,
-                         help="Run browser in headless mode (default: True)")
-    parser.add_argument('--mode', type=int, default=None,
-                         help="Bumper mode to run without the interactive menu: 1 (profile), 2 (threads.txt), 3 (award farmer). Falls back to the interactive prompt if omitted or not one of 1/2/3.")
-    parser.add_argument('--thread', type=str, default=None,
-                        help="Link to the thread to be farmed (only used with option 3, award farmer).")
+    parser.add_argument('--headless', type=str2bool, default=str2bool(os.getenv('HEADLESS', 'true')),
+                         help="Run browser in headless mode (default: True, env: HEADLESS)")
+    parser.add_argument('--mode', type=int, default=int(os.getenv('MODE')) if os.getenv('MODE', '').isdigit() else None,
+                         help="Bumper mode to run without the interactive menu: 1 (profile), 2 (threads), 3 (award farmer). Falls back to the interactive prompt if omitted or not one of 1/2/3. (env: MODE)")
+    parser.add_argument('--thread', type=str, default=os.getenv('THREAD') or None,
+                        help="Link to the thread to be farmed (only used with option 3, award farmer). (env: THREAD)")
     return parser.parse_args()
 
 class bcolors:
@@ -56,8 +58,10 @@ def menu(args):
 
     if args.mode is not None and args.mode in (1, 2, 3):
         mode = str(args.mode)
-    else:
+    elif sys.stdin.isatty():
         mode = input(bcolors.HEADER + "\nEnter the number of the preferred option: " + bcolors.ENDC)
+    else:
+        raise SystemExit("No mode selected. Set MODE=1|2|3 or pass --mode.")
 
     if mode == '1':
         print(bcolors.WARNING + "\nStarting Autobumper..." + bcolors.ENDC)
@@ -68,8 +72,10 @@ def menu(args):
     elif mode == '3':
         if args.thread is not None:
             thread = str(args.thread)
-        else:
+        elif sys.stdin.isatty():
             thread = input(bcolors.HEADER + "Enter link to Farming thread: " + bcolors.ENDC)
+        else:
+            raise SystemExit("Mode 3 needs a thread link. Set THREAD env var or pass --thread.")
         print(bcolors.WARNING + "\nStarting Awardfarmer..." + bcolors.ENDC)
         Awardfarmer(link=thread, headless=args.headless)
     elif mode == '4':

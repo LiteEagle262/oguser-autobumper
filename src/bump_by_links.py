@@ -1,3 +1,4 @@
+import os
 import time
 
 from src.autobumper import Autobumper
@@ -32,11 +33,16 @@ class LinkBumper(Autobumper):
                     print(f"ERROR: {e}")
                     time.sleep(0.5)
             print('Finished bumping all threads!')
-            time.sleep(4*1800 - len(self.tids)*5)
+            time.sleep(max(self.bump_interval - len(self.tids)*5, 0))
 
     def get_links(self):
+        env_links = os.getenv('THREAD_URLS', '')
+        if env_links.strip():
+            return [link.strip() for link in env_links.split(',') if link.strip()]
         links = []
         with open('threads.txt') as file:
             for line in file:
-                links.append(line.split("\n")[0])
+                line = line.strip()
+                if line.startswith('http'):
+                    links.append(line)
         return links
