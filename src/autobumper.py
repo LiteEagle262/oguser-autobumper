@@ -1,6 +1,7 @@
 import requests
 import datetime
 import os
+import random
 import time
 import re
 
@@ -156,6 +157,7 @@ class Autobumper(ABC):
             raise Exception('Login failed. Consider running the script with `--headless=False`.')
 
     def newreply(self, tid, message):
+        message = f"{message} {random.randint(10000, 99999)}"
         cookies = {c['name']: c['value'] for c in self.driver.get_cookies()}
 
         data = {
