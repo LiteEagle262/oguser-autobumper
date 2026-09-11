@@ -1,6 +1,6 @@
 randfacts==0.20.2
 selenium
-seleniumbase==4.28.0
+seleniumbase==4.54.1
 datetime
 pyotp
 beautifulsoup4

@@ -7,9 +7,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     chromium-driver \
+    xvfb \
     fonts-liberation \
     ca-certificates \
     && ln -sf /usr/bin/chromium /usr/local/bin/google-chrome \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-tk \
+    scrot \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,7 +25,7 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-ENV HEADLESS=true \
+ENV HEADLESS=false \
     MODE=2
 
 CMD ["python", "main.py"]

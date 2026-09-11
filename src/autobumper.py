@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+import seleniumbase.config as sb_config
 from seleniumbase import Driver
 
 from bs4 import BeautifulSoup
@@ -26,6 +27,8 @@ class Autobumper(ABC):
         self.username = username
         self.headless = headless
         self.bump_interval = float(os.getenv("BUMP_INTERVAL_HOURS", "2")) * 3600
+        if not hasattr(sb_config, 'headless'):
+            sb_config.headless = headless
         self.driver = Driver(uc=True, headless=headless)
         self.wait = WebDriverWait(self.driver, 25)
 
@@ -95,30 +98,59 @@ class Autobumper(ABC):
         except Exception:
             return False
 
+    def bypass_cloudflare(self):
+        for _ in range(12):
+            try:
+                if 'just a moment' not in (self.driver.title or '').lower():
+                    return
+                info = self.driver.execute_script("""
+                    const el = document.elementFromPoint(innerWidth/2, innerHeight*0.545);
+                    const r = el ? el.getBoundingClientRect() : null;
+                    return {rect: r ? {x: r.x, y: r.y, w: r.width, h: r.height} : null,
+                            innerW: innerWidth, innerH: innerHeight};
+                """)
+                wr = self.driver.get_window_rect()
+                chrome_h = wr['height'] - info['innerH']
+                r = info['rect']
+                if r and 200 <= r['w'] <= 400 and 40 <= r['h'] <= 100:
+                    vx, vy = r['x'] + 22, r['y'] + r['h'] / 2
+                else:
+                    vx, vy = info['innerW'] / 2 - 130, info['innerH'] * 0.545
+                self.driver.uc_gui_click_x_y(wr['x'] + vx, wr['y'] + chrome_h + vy)
+            except Exception:
+                pass
+            time.sleep(5)
+
     def login(self):
         try:
             self.driver.get('https://google.com')
-            self.driver.set_window_size(600, 600)
             time.sleep(3)
             self.driver.get(self.main_url)
             time.sleep(7)
+            self.bypass_cloudflare()
             self.driver.switch_to.window(self.driver.window_handles[0])
-            self.wait.until(ec.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[1]/div[3]/a'))).click()
-            user_xpath = '//*[@id="fullcontainment"]/div/form[2]/table/tbody/tr[1]/td/label/input'
-            self.wait.until(ec.visibility_of_element_located((By.XPATH, user_xpath))).send_keys(username)
-            pass_xpath = '//*[@id="fullcontainment"]/div/form[2]/table/tbody/tr[2]/td/label/input'
-            self.wait.until(ec.visibility_of_element_located((By.XPATH, pass_xpath))).send_keys(password)
-            if secret and secret != "enter your 2FA secret here":
+            self.driver.get(self.main_url + 'login')
+            time.sleep(5)
+            self.bypass_cloudflare()
+            self.wait.until(ec.presence_of_element_located((By.NAME, 'username')))
+            forms = self.driver.find_elements(By.XPATH, '//form[.//input[@name="2facode"]]')
+            if not forms:
+                forms = self.driver.find_elements(By.XPATH, '//form[.//input[@name="username"] and .//input[@name="password"]]')
+            form = next((f for f in forms if f.is_displayed()), forms[-1])
+            form.find_element(By.NAME, 'username').send_keys(username)
+            form.find_element(By.NAME, 'password').send_keys(password)
+            if secret:
                 totp = pyotp.TOTP(secret)
                 time_remaining = totp.interval - datetime.datetime.now().timestamp() % totp.interval
-                time.sleep(time_remaining+1)
-                code = totp.now()
-                auth_xpath = '//*[@id="fullcontainment"]/div/form[2]/table/tbody/tr[3]/td/label/input'
-                self.wait.until(ec.visibility_of_element_located((By.XPATH, auth_xpath))).send_keys(code)
-            login_xpath = '//*[@id="fullcontainment"]/div/form[2]/table/tbody/tr[4]/td/span/input'
-            self.wait.until(ec.visibility_of_element_located((By.XPATH, login_xpath))).click()
-            profile_xpath = '//*[@id="dropdown-profile-mobile"]'
-            self.wait.until(ec.visibility_of_element_located((By.XPATH, profile_xpath)))
+                time.sleep(time_remaining + 1)
+                form.find_element(By.NAME, '2facode').send_keys(totp.now())
+            submit = form.find_elements(By.XPATH, './/input[@type="submit"] | .//button[@type="submit"]')
+            if submit:
+                submit[0].click()
+            else:
+                form.submit()
+            self.wait.until(lambda d: 'action=logout' in d.page_source
+                            or d.find_elements(By.XPATH, '//*[@id="dropdown-profile-mobile"]'))
             print("STATUS: Logged in.")
         except Exception:
             raise Exception('Login failed. Consider running the script with `--headless=False`.')

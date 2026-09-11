@@ -86,5 +86,9 @@ def menu(args):
 
 if __name__ == '__main__':
     args = parse_args()
+    if not args.headless and not os.environ.get('DISPLAY'):
+        from sbvirtualdisplay import Display
+        _display = Display(visible=0, size=(1920, 1080))
+        _display.start()
     header()
     menu(args)
